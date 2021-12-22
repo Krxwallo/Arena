@@ -68,7 +68,7 @@ val TEST_EQUIP = Equip(
     // Weapons
     listOf(Sword(level = 2), Axe(level = 2), Bow()),
     // Extras
-    listOf(Material.ARROW.stack(), Material.COOKED_BEEF.stack(64)))
+    listOf(Material.ENDER_PEARL.stack(), Material.ARROW.stack(), Material.COOKED_BEEF.stack(64)))
 
 /** Represents an equip item, like a sword or an axe */
 abstract class Item {

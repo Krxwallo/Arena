@@ -14,6 +14,7 @@ import net.axay.kspigot.items.name
 import net.axay.kspigot.items.setLore
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
 
 val LEVEL_NOT_AVAILABLE = itemStack(Material.BARRIER) {
     meta {
@@ -38,6 +39,7 @@ fun Player.openSettingsGui() = openGUI(kSpigotGUI(GUIType.SIX_BY_NINE) {
         lateinit var levelCompound: GUIRectSpaceCompound<*, Item>
         lateinit var itemCompound: GUIRectSpaceCompound<*, Item>
         lateinit var modifierCompound: GUIRectSpaceCompound<*, Item>
+        lateinit var extrasCompound: GUIRectSpaceCompound<*, ItemStack>
 
         fun updateCompounds() {
             // TODO real equip
@@ -45,6 +47,7 @@ fun Player.openSettingsGui() = openGUI(kSpigotGUI(GUIType.SIX_BY_NINE) {
             levelCompound.setContent(items)
             itemCompound.setContent(items)
             modifierCompound.setContent(items)
+            extrasCompound.setContent(TEST_EQUIP.extras.asIterable())
         }
 
         levelCompound = createRectCompound(
@@ -107,14 +110,14 @@ fun Player.openSettingsGui() = openGUI(kSpigotGUI(GUIType.SIX_BY_NINE) {
         )
 
         // Extra Items TODO compound
-        freeSlot(Slots.RowOneSlotTwo)
-        freeSlot(Slots.RowOneSlotThree)
-        freeSlot(Slots.RowOneSlotFour)
-        freeSlot(Slots.RowOneSlotFive)
-        freeSlot(Slots.RowOneSlotSix)
-        freeSlot(Slots.RowOneSlotSeven)
-        freeSlot(Slots.RowOneSlotEight)
-
+        extrasCompound = createRectCompound(
+            Slots.RowOneSlotTwo,
+            Slots.RowOneSlotEight,
+            iconGenerator = { it },
+            onClick = { _, _ ->
+                // TODO
+            }
+        )
         updateCompounds()
     }
 

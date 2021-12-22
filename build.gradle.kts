@@ -5,6 +5,7 @@ val kutils = "0.0.5"
 
 plugins {
     kotlin("jvm") version "1.6.10"
+    kotlin("plugin.serialization") version "1.6.10"
     id("io.papermc.paperweight.userdev") version "1.3.2"
     id("net.minecrell.plugin-yml.bukkit") version "0.5.1"
 }

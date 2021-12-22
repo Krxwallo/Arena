@@ -1,14 +1,18 @@
 package de.lookonthebrightsi.arena
 
 import de.hglabor.utils.kutils.cancel
+import de.hglabor.utils.kutils.isRightClick
 import de.hglabor.utils.kutils.reflectMethod
+import de.hglabor.utils.kutils.stack
 import net.axay.kspigot.chat.KColors
 import net.axay.kspigot.event.SingleListener
 import net.axay.kspigot.event.listen
 import net.axay.kspigot.extensions.broadcast
 import net.axay.kspigot.extensions.bukkit.actionBar
-import net.axay.kspigot.extensions.bukkit.kill
-import org.bukkit.GameMode
+import net.axay.kspigot.extensions.bukkit.give
+import net.axay.kspigot.extensions.geometry.vec
+import net.axay.kspigot.runnables.taskRunLater
+import org.bukkit.Material
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
@@ -19,7 +23,9 @@ import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityPlaceEvent
 import org.bukkit.event.entity.EntityShootBowEvent
+import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.*
+import java.util.*
 
 fun events() {
     // Cancel stuff when player is in combat
@@ -36,10 +42,18 @@ fun events() {
         it.player?.actionBar("${KColors.RED}You can't place entities here")
     }
     combatListen<PlayerInteractEvent> {
-        if (it.clickedBlock?.type?.isInteractable == true) {
+        if (it.isRightClick && it.clickedBlock?.type?.isInteractable == true) {
             it.cancel()
             it.player.actionBar("${KColors.RED}You can't interact here")
         }
+        else if (it.isRightClick && it.item?.type == Material.ENDER_PEARL) {
+            taskRunLater(20*15) {
+                it.player.give(Material.ENDER_PEARL.stack())
+            }
+        }
+    }
+    combatListen<PlayerItemConsumeEvent> {
+        if (it.item.type == Material.ENDER_PEARL) it.cancel()
     }
     combatListen<PlayerItemDamageEvent> {
         it.cancel()
@@ -51,7 +65,9 @@ fun events() {
 
     listen<PlayerJoinEvent> {
         // Equip player when in combat
-        if (it.player.combat) it.player.equip(TEST_EQUIP) // TODO equip corresponding to team
+        if (it.player.combat) {
+            it.player.reEquip() // TODO equip corresponding to team
+        }
     }
 
     listen<LeavesDecayEvent> {
@@ -76,7 +92,13 @@ fun events() {
         val newBlock = it.to.block.getRelative(BlockFace.DOWN)
         if (oldBlock != newBlock) {
             it.player.checkMechanics(newBlock)
-            if (newBlock.y < 90) it.player.kill()
+            if (newBlock.y < 90) it.player.apply {
+                teleport(it.player.world.spawnLocation.apply {
+                    yaw = location.yaw
+                    pitch = location.pitch
+                })
+                damage(7.0)
+            }
         }
     }
 
