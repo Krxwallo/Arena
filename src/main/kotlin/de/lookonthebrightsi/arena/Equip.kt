@@ -21,6 +21,14 @@ val levels = listOf(
     "Netherite",
 )
 
+val levelMaterials = listOf(
+    Material.OAK_PLANKS,
+    Material.COBBLESTONE,
+    Material.IRON_INGOT,
+    Material.DIAMOND,
+    Material.NETHERITE_INGOT,
+)
+
 /**
  * Levels:
  * 0 Wood // Invalid on armor
@@ -36,7 +44,7 @@ val levels = listOf(
  * 3 Sharpness III / Protection III
  * ...
  */
-data class Equip(val armorItems: List<Item>, val weapons: List<Item>, val extras: List<ItemStack>) {
+data class Equip(val armorItems: List<Item>, val weapons: List<Item>, val extras: List<ItemStack>, val shield: Boolean = true) {
     fun giveTo(player: Player) {
         val armorContents = arrayListOf<ItemStack>()
         armorItems.forEach { armorContents.add(it.getItemStack()) }
@@ -47,32 +55,32 @@ data class Equip(val armorItems: List<Item>, val weapons: List<Item>, val extras
             else player.give(it.getItemStack())
         }
 
-        extras.forEach {
-            if (it.type == Material.SHIELD) player.inventory.setItemInOffHand(it)
-            else player.give(it)
-        }
+        player.give(*extras.toTypedArray())
+
+        if (shield) player.inventory.setItemInOffHand(Material.SHIELD.stack())
     }
 }
 
 /** Default iron no sharp equip */
-val DEFAULT_EQUIP = Equip(
+val TEST_EQUIP = Equip(
     // Armor
-    listOf(Boots(level = "Diamond"), Leggings(level = "Diamond"), Chestplate(level = "Diamond", modifier = 2), Helmet(level = "Diamond")),
+    listOf(Boots(level = 2), Leggings(level = 2), Chestplate(level = 2), Helmet(level = 2)),
     // Weapons
-    listOf(Sword(level = "Netherite"), Axe(level = "Diamond", modifier = 1)),
+    listOf(Sword(level = 2), Axe(level = 2), Bow()),
     // Extras
-    listOf(Material.SHIELD.stack(), itemStack(Material.BOW) {
-        addEnchantment(Enchantment.ARROW_INFINITE, 1)
-    }, Material.ARROW.stack(), Material.COOKED_BEEF.stack(64)))
+    listOf(Material.ARROW.stack(), Material.COOKED_BEEF.stack(64)))
 
 /** Represents an equip item, like a sword or an axe */
 abstract class Item {
-    abstract val level: String
-    abstract val modifier: Int
+    abstract var level: Int // -1 for N/A
+    abstract var modifier: Int // -1 for N/A
+    open val maxModifier: Int =  5
+    open val minLevel: Int = 2
+    open val maxLevel: Int = 4
     /** If this is `-1`, the item is just given to the best slot in the inventory */
     open val slot: Int = -1
-    private val material get() = Material.valueOf(("${level}_${javaClass.simpleName}").uppercase())
-    private val itemType get() = javaClass.simpleName
+    private val material get() = if (itemType.equals("bow", true)) Material.BOW else Material.valueOf(("${levels[level]}_${javaClass.simpleName}").uppercase())
+    val itemType: String get() = javaClass.simpleName
     /** Return the `ItemStack` representation of this item */
     fun getItemStack(): ItemStack {
         // Material = LEVELSTRING_CLASSNAME
@@ -83,7 +91,7 @@ abstract class Item {
             meta {
                 name = "${KColors.YELLOW}${KColors.BOLD}$itemType"
                 addLore {
-                    lorelist += "${KColors.AQUA}Level: $level"
+                    if (level != -1) lorelist += "${KColors.AQUA}Level: ${levels[level]}"
                     if (modifier > 0) lorelist += "${KColors.GREEN}Modifier: $modifier"
                 }
             }
@@ -91,9 +99,15 @@ abstract class Item {
             if (modifier > 0) when (itemType.lowercase()) {
                 "sword", "axe" -> addEnchantment(Enchantment.DAMAGE_ALL, modifier)
                 "helmet", "chestplate", "leggings", "boots" -> addEnchantment(Enchantment.PROTECTION_ENVIRONMENTAL, modifier)
+                "bow" -> addEnchantment(Enchantment.ARROW_DAMAGE, modifier)
             }
         }
     }
+
+    fun levelIncreasable() = level < maxLevel
+    fun levelDecreasable() = level > minLevel
+    fun modifierIncreasable() = modifier < maxModifier
+    fun modifierDecreasable() = modifier > 0
 }
 
 /** Get the `Item` representation of this `ItemStack` */
@@ -102,10 +116,30 @@ fun ItemStack.parseAsItem() {
 }
 
 // Default Level = Iron, Default Modifier = 0
-data class Sword(override val level: String = "Iron", override val modifier: Int = 0, override val slot: Int = 0): Item()
-data class Axe(override val level: String = "Iron", override val modifier: Int = 0, override val slot: Int = 1): Item()
+data class Sword(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 0): Item() {
+    override val minLevel = 0
+}
+data class Axe(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 1): Item() {
+    override val minLevel = 0
+}
+data class Bow(override var modifier: Int = 0, override val slot: Int = 2): Item() {
+    override var level: Int = -1 // There are no bow types
+}
 
-data class Helmet(override val level: String = "Iron", override val modifier: Int = 0, override val slot: Int = 103): Item()
-data class Chestplate(override val level: String = "Iron", override val modifier: Int = 0, override val slot: Int = 102): Item()
-data class Leggings(override val level: String = "Iron", override val modifier: Int = 0, override val slot: Int = 101): Item()
-data class Boots(override val level: String = "Iron", override val modifier: Int = 0, override val slot: Int = 100): Item()
+// Armor needs to be level iron or up and max. protection IV
+data class Helmet(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 103): Item() {
+    override val minLevel = 2
+    override val maxModifier = 4
+}
+data class Chestplate(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 102): Item() {
+    override val minLevel = 2
+    override val maxModifier = 4
+}
+data class Leggings(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 101): Item() {
+    override val minLevel = 2
+    override val maxModifier = 4
+}
+data class Boots(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 100): Item() {
+    override val minLevel = 2
+    override val maxModifier = 4
+}

@@ -12,7 +12,7 @@ var Player.combat: Boolean
             closeInventory(); clearHealFeedSaturate()
             survival()
             // TODO give equip of team
-            equip(DEFAULT_EQUIP)
+            equip(TEST_EQUIP)
             sendMessage("$PREFIX ${KColors.GREEN}You are now in combat.")
         }
         else {
@@ -22,6 +22,13 @@ var Player.combat: Boolean
         }
     }
 
+inline fun combatPlayers(block: Player.() -> Unit) = onlinePlayers { if(combat) block() }
+
 fun Player.equip(equip: Equip) {
     equip.giveTo(this)
+}
+
+fun Player.reEquip() {
+    clearInv()
+    equip(TEST_EQUIP) // TODO right equip
 }

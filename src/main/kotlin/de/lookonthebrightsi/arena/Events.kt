@@ -7,6 +7,8 @@ import net.axay.kspigot.event.SingleListener
 import net.axay.kspigot.event.listen
 import net.axay.kspigot.extensions.broadcast
 import net.axay.kspigot.extensions.bukkit.actionBar
+import net.axay.kspigot.extensions.bukkit.kill
+import org.bukkit.GameMode
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
@@ -16,6 +18,7 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityPlaceEvent
+import org.bukkit.event.entity.EntityShootBowEvent
 import org.bukkit.event.player.*
 
 fun events() {
@@ -48,7 +51,7 @@ fun events() {
 
     listen<PlayerJoinEvent> {
         // Equip player when in combat
-        if (it.player.combat) it.player.equip(DEFAULT_EQUIP) // TODO equip corresponding to team
+        if (it.player.combat) it.player.equip(TEST_EQUIP) // TODO equip corresponding to team
     }
 
     listen<LeavesDecayEvent> {
@@ -57,12 +60,28 @@ fun events() {
 
     listen<PlayerGameModeChangeEvent> {
         //if (it.newGameMode == GameMode.SURVIVAL) it.player.combat = false
+        if (!it.player.isOnline) return@listen
+        /*if (it.newGameMode == GameMode.SURVIVAL && !it.player.combat) {
+            it.cancel()
+            it.player.combat = true
+        }
+        else if (it.player.gameMode == GameMode.SURVIVAL && it.player.combat) {
+            it.cancel()
+            it.player.combat = false
+        }*/
     }
 
     combatListen<PlayerMoveEvent> {
         val oldBlock = it.from.block.getRelative(BlockFace.DOWN)
         val newBlock = it.to.block.getRelative(BlockFace.DOWN)
-        if (oldBlock != newBlock) it.player.checkMechanics(newBlock)
+        if (oldBlock != newBlock) {
+            it.player.checkMechanics(newBlock)
+            if (newBlock.y < 90) it.player.kill()
+        }
+    }
+
+    listen<EntityShootBowEvent> {
+        it.setConsumeItem(false) // TODO setting
     }
 
     listen<EntityDamageEvent> {

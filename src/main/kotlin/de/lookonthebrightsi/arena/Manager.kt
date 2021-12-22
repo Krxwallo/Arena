@@ -21,6 +21,8 @@ class InternalMainClass : KSpigot() {
     override fun startup() {
         commands()
         events()
+        // For reloads
+        combatPlayers { reEquip() }
     }
 
 }

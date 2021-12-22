@@ -12,4 +12,9 @@ fun commands() {
             player.combat = !player.combat
         }
     }
+
+    command("settings") {
+        requiresPermission("arena.settings")
+        runs { player.openSettingsGui() }
+    }
 }
