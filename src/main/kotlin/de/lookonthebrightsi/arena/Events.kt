@@ -14,16 +14,14 @@ import net.axay.kspigot.extensions.geometry.vec
 import net.axay.kspigot.runnables.taskRunLater
 import org.bukkit.Material
 import org.bukkit.block.BlockFace
+import org.bukkit.entity.EnderPearl
 import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventPriority
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.LeavesDecayEvent
-import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.event.entity.EntityPlaceEvent
-import org.bukkit.event.entity.EntityShootBowEvent
-import org.bukkit.event.entity.PlayerDeathEvent
+import org.bukkit.event.entity.*
 import org.bukkit.event.player.*
 import java.util.*
 
@@ -48,6 +46,7 @@ fun events() {
         }
         else if (it.isRightClick && it.item?.type == Material.ENDER_PEARL) {
             taskRunLater(20*15) {
+                it.player.inventory.remove(Material.ENDER_PEARL) // TODO correct fix
                 it.player.give(Material.ENDER_PEARL.stack())
             }
         }
@@ -90,16 +89,12 @@ fun events() {
     combatListen<PlayerMoveEvent> {
         val oldBlock = it.from.block.getRelative(BlockFace.DOWN)
         val newBlock = it.to.block.getRelative(BlockFace.DOWN)
-        if (oldBlock != newBlock) {
-            it.player.checkMechanics(newBlock)
-            if (newBlock.y < 90) it.player.apply {
-                teleport(it.player.world.spawnLocation.apply {
-                    yaw = location.yaw
-                    pitch = location.pitch
-                })
-                damage(7.0)
-            }
-        }
+        if (oldBlock != newBlock) it.player.checkMechanics(newBlock)
+    }
+
+    combatListen<PlayerTeleportEvent> {
+        val blockBelow = it.player.location.block.getRelative(BlockFace.DOWN)
+        it.player.checkMechanics(blockBelow)
     }
 
     listen<EntityShootBowEvent> {
@@ -112,6 +107,10 @@ fun events() {
             && checkFallDamage(it.entity.location.block.getRelative(BlockFace.DOWN))) it.cancel()
     }
 
+    // NED
+    listen<EntityDamageByEntityEvent> {
+        if (it.entity is Player && it.damager is EnderPearl) it.cancel()
+    }
 }
 
 /** Listen for player events, but only run the block when the player is in combat */

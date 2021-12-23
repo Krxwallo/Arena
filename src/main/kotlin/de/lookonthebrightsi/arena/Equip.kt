@@ -1,8 +1,10 @@
 package de.lookonthebrightsi.arena
 
 import de.hglabor.utils.kutils.stack
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.axay.kspigot.chat.KColors
-import net.axay.kspigot.extensions.broadcast
 import net.axay.kspigot.extensions.bukkit.give
 import net.axay.kspigot.items.addLore
 import net.axay.kspigot.items.itemStack
@@ -44,7 +46,23 @@ val levelMaterials = listOf(
  * 3 Sharpness III / Protection III
  * ...
  */
-data class Equip(val armorItems: List<Item>, val weapons: List<Item>, val extras: List<ItemStack>, val shield: Boolean = true) {
+@Serializable
+class Equip(val armorItems: List<Item>, val weapons: List<Item>, var extras: Map<Material, Int>, val shield: Boolean = true) {
+    fun extrasToItemStacks(): List<ItemStack> {
+        val stacks = arrayListOf<ItemStack>()
+        extras.forEach { (type, amount) ->
+            stacks += type.stack(amount)
+        }
+        return stacks
+    }
+    fun setExtras(value: List<ItemStack?>) {
+        val mExtras = hashMapOf<Material, Int>()
+        value.forEach {
+            if (it != null) mExtras += it.type to it.amount
+        }
+        extras = mExtras
+    }
+
     fun giveTo(player: Player) {
         val armorContents = arrayListOf<ItemStack>()
         armorItems.forEach { armorContents.add(it.getItemStack()) }
@@ -55,32 +73,36 @@ data class Equip(val armorItems: List<Item>, val weapons: List<Item>, val extras
             else player.give(it.getItemStack())
         }
 
-        player.give(*extras.toTypedArray())
+        player.give(*extrasToItemStacks().toTypedArray())
 
         if (shield) player.inventory.setItemInOffHand(Material.SHIELD.stack())
     }
 }
 
 /** Default iron no sharp equip */
-val TEST_EQUIP = Equip(
+val DEFAULT_EQUIP = Equip(
     // Armor
     listOf(Boots(level = 2), Leggings(level = 2), Chestplate(level = 2), Helmet(level = 2)),
     // Weapons
     listOf(Sword(level = 2), Axe(level = 2), Bow()),
     // Extras
-    listOf(Material.ENDER_PEARL.stack(), Material.ARROW.stack(), Material.COOKED_BEEF.stack(64)))
+    mapOf(Material.ENDER_PEARL to 1, Material.ARROW to 1, Material.COOKED_BEEF to 64))
+
+var equip = DEFAULT_EQUIP
 
 /** Represents an equip item, like a sword or an axe */
-abstract class Item {
+@Serializable
+sealed class Item(
+    val minLevel: Int = 2,
+    private val maxLevel: Int = 4,
+    val maxModifier: Int = 5
+) {
+    abstract val itemType: String
     abstract var level: Int // -1 for N/A
     abstract var modifier: Int // -1 for N/A
-    open val maxModifier: Int =  5
-    open val minLevel: Int = 2
-    open val maxLevel: Int = 4
     /** If this is `-1`, the item is just given to the best slot in the inventory */
-    open val slot: Int = -1
+    abstract val slot: Int
     private val material get() = if (itemType.equals("bow", true)) Material.BOW else Material.valueOf(("${levels[level]}_${javaClass.simpleName}").uppercase())
-    val itemType: String get() = javaClass.simpleName
     /** Return the `ItemStack` representation of this item */
     fun getItemStack(): ItemStack {
         // Material = LEVELSTRING_CLASSNAME
@@ -116,30 +138,41 @@ fun ItemStack.parseAsItem() {
 }
 
 // Default Level = Iron, Default Modifier = 0
-data class Sword(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 0): Item() {
-    override val minLevel = 0
+@Serializable
+@SerialName("sword")
+class Sword(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 0): Item(minLevel = 0) {
+    override val itemType = "Sword"
 }
-data class Axe(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 1): Item() {
-    override val minLevel = 0
+@Serializable
+@SerialName("axe")
+class Axe(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 1): Item(minLevel = 0) {
+    override val itemType = "Axe"
 }
-data class Bow(override var modifier: Int = 0, override val slot: Int = 2): Item() {
-    override var level: Int = -1 // There are no bow types
+@Serializable
+@SerialName("bow")
+class Bow(override var modifier: Int = 0, override val slot: Int = 2): Item() {
+    override val itemType = "Bow"
+    override var level = -1 // There are no bow types
 }
 
 // Armor needs to be level iron or up and max. protection IV
-data class Helmet(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 103): Item() {
-    override val minLevel = 2
-    override val maxModifier = 4
+@Serializable
+@SerialName("helmet")
+class Helmet(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 103): Item(maxModifier = 4) {
+    override val itemType = "Helmet"
 }
-data class Chestplate(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 102): Item() {
-    override val minLevel = 2
-    override val maxModifier = 4
+@Serializable
+@SerialName("chestplate")
+class Chestplate(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 102): Item(maxModifier = 4) {
+    override val itemType = "Chestplate"
 }
-data class Leggings(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 101): Item() {
-    override val minLevel = 2
-    override val maxModifier = 4
+@Serializable
+@SerialName("leggings")
+class Leggings(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 101): Item(maxModifier = 4) {
+    override val itemType = "Leggings"
 }
-data class Boots(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 100): Item() {
-    override val minLevel = 2
-    override val maxModifier = 4
+@Serializable
+@SerialName("boots")
+class Boots(override var level: Int = 2, override var modifier: Int = 0, override val slot: Int = 100): Item(maxModifier = 4) {
+    override val itemType = "Boots"
 }

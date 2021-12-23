@@ -2,6 +2,7 @@ group = "de.lookonthebrightsi"
 version = "0.0.1"
 val kspigot = "1.18.0"
 val kutils = "0.0.5"
+val kotlinxSerializationJson = "1.3.1"
 
 plugins {
     kotlin("jvm") version "1.6.10"
@@ -17,7 +18,8 @@ bukkit {
     apiVersion = "1.18"
     libraries = listOf(
         "net.axay:kspigot:$kspigot",
-        "de.hglabor.utils:kutils:$kutils"
+        "de.hglabor.utils:kutils:$kutils",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationJson"
     )
 }
 
@@ -28,6 +30,7 @@ repositories {
 
 dependencies {
     paperDevBundle("1.18.1-R0.1-SNAPSHOT")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationJson")
     implementation("net.axay:kspigot:$kspigot")
     implementation("de.hglabor.utils:kutils:$kutils")
     compileOnly("com.sk89q.worldedit:worldedit-bukkit:7.2.8")

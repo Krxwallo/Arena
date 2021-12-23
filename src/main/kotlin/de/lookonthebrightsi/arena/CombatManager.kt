@@ -12,7 +12,7 @@ var Player.combat: Boolean
             closeInventory(); clearHealFeedSaturate()
             survival()
             // TODO give equip of team
-            equip(TEST_EQUIP)
+            equip(equip)
             sendMessage("$PREFIX ${KColors.GREEN}You are now in combat.")
         }
         else {
@@ -30,5 +30,5 @@ fun Player.equip(equip: Equip) {
 
 fun Player.reEquip() {
     clearInv()
-    equip(TEST_EQUIP) // TODO right equip
+    equip(equip) // TODO right equip
 }

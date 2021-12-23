@@ -1,8 +1,12 @@
 package de.lookonthebrightsi.arena
 
 import de.hglabor.utils.kutils.cancel
-import de.hglabor.utils.kutils.stack
+import de.hglabor.utils.kutils.namedItem
 import net.axay.kspigot.chat.KColors
+import net.axay.kspigot.event.SingleListener
+import net.axay.kspigot.event.listen
+import net.axay.kspigot.event.unregister
+import net.axay.kspigot.extensions.broadcast
 import net.axay.kspigot.gui.GUIType
 import net.axay.kspigot.gui.Slots
 import net.axay.kspigot.gui.elements.GUIRectSpaceCompound
@@ -12,9 +16,13 @@ import net.axay.kspigot.items.itemStack
 import net.axay.kspigot.items.meta
 import net.axay.kspigot.items.name
 import net.axay.kspigot.items.setLore
+import net.axay.kspigot.runnables.taskRun
+import net.axay.kspigot.runnables.taskRunLater
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
+import org.bukkit.event.inventory.InventoryCloseEvent
+import org.bukkit.inventory.InventoryView
 
 val LEVEL_NOT_AVAILABLE = itemStack(Material.BARRIER) {
     meta {
@@ -30,29 +38,40 @@ val MODIFIER_NOT_AVAILABLE = itemStack(Material.BARRIER) {
     }
 }
 
-fun Player.openSettingsGui() = openGUI(kSpigotGUI(GUIType.SIX_BY_NINE) {
+fun Player.openMainGui() = openGUI(kSpigotGUI(GUIType.ONE_BY_FIVE) {
+    title = "${KColors.DARKGREEN}Arena"
+    page(1) {
+        button(Slots.RowOneSlotTwo, namedItem(Material.GOLDEN_SWORD, "${KColors.YELLOW}Teams")) {
+            openTeamsGui()
+        }
+        button(Slots.RowOneSlotFour, namedItem(Material.COMPARATOR, "${KColors.GRAY}Settings")) {
+            //openSettingsGui() // TODO
+            sendMessage("N/I")
+        }
+    }
+})
+
+fun Player.openTeamsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FIVE_BY_NINE) {
     title = "${KColors.BLUE}Team 1 - Equip"
 
     page(1) {
-        placeholder(Slots.All, Material.LIGHT_BLUE_STAINED_GLASS_PANE.stack())
+        placeholder(Slots.All, namedItem(Material.LIGHT_BLUE_STAINED_GLASS_PANE, ""))
 
         lateinit var levelCompound: GUIRectSpaceCompound<*, Item>
         lateinit var itemCompound: GUIRectSpaceCompound<*, Item>
         lateinit var modifierCompound: GUIRectSpaceCompound<*, Item>
-        lateinit var extrasCompound: GUIRectSpaceCompound<*, ItemStack>
 
         fun updateCompounds() {
             // TODO real equip
-            val items = TEST_EQUIP.weapons + TEST_EQUIP.armorItems
+            val items = equip.weapons + equip.armorItems
             levelCompound.setContent(items)
             itemCompound.setContent(items)
             modifierCompound.setContent(items)
-            extrasCompound.setContent(TEST_EQUIP.extras.asIterable())
         }
 
         levelCompound = createRectCompound(
-            Slots.RowFiveSlotTwo,
-            Slots.RowFiveSlotEight,
+            Slots.RowFourSlotTwo,
+            Slots.RowFourSlotEight,
             iconGenerator = {
                 if (it.level == -1) LEVEL_NOT_AVAILABLE
                 else itemStack(levelMaterials[it.level]) {
@@ -76,8 +95,8 @@ fun Player.openSettingsGui() = openGUI(kSpigotGUI(GUIType.SIX_BY_NINE) {
         )
 
         itemCompound = createRectCompound(
-            Slots.RowFourSlotTwo,
-            Slots.RowFourSlotEight,
+            Slots.RowThreeSlotTwo,
+            Slots.RowThreeSlotEight,
             iconGenerator = { it.getItemStack() },
 
             onClick = { clickEvent, _ ->
@@ -86,8 +105,8 @@ fun Player.openSettingsGui() = openGUI(kSpigotGUI(GUIType.SIX_BY_NINE) {
         )
 
         modifierCompound = createRectCompound(
-            Slots.RowThreeSlotTwo,
-            Slots.RowThreeSlotEight,
+            Slots.RowTwoSlotTwo,
+            Slots.RowTwoSlotEight,
             iconGenerator = {
                 if (it.modifier == -1) MODIFIER_NOT_AVAILABLE
                 else itemStack(if (it.modifier == 0) Material.BOOK else Material.ENCHANTED_BOOK) {
@@ -109,19 +128,30 @@ fun Player.openSettingsGui() = openGUI(kSpigotGUI(GUIType.SIX_BY_NINE) {
             }
         )
 
-        // Extra Items TODO compound
-        extrasCompound = createRectCompound(
-            Slots.RowOneSlotTwo,
-            Slots.RowOneSlotEight,
-            iconGenerator = { it },
-            onClick = { _, _ ->
-                // TODO
+        button(Slots.RowOneSlotOne, namedItem(Material.ENDER_PEARL, "${KColors.GREEN}Special Items")) {
+
+        }
+
+        button(Slots.RowOneSlotNine, namedItem(Material.BUNDLE, "${KColors.BROWN}Extras")) {
+            val inv = Bukkit.createInventory(null, 27, "${KColors.BROWN}Extras")
+            inv.addItem(*equip.extrasToItemStacks().toTypedArray())
+            openInventory(inv)
+            @Suppress("JoinDeclarationAndAssignment")
+            lateinit var listener: SingleListener<InventoryCloseEvent>
+            listener = listen {
+                if (it.player == this@openTeamsGui && it.inventory == inv) {
+                    listener.unregister()
+                    equip.setExtras(it.inventory.contents?.toList() ?: return@listen)
+                    taskRunLater(1L ) { openTeamsGui() }
+                }
             }
-        )
+        }
+
         updateCompounds()
     }
 
     onClose {
+        // TODO no reequip when opening b
         sendMessage("$PREFIX ${KColors.GREEN}Saved equipment")
         combatPlayers { reEquip() }
     }

@@ -20,6 +20,13 @@ fun Player.checkMechanics(blockBelow: Block) {
         }
         else -> {}
     }
+    if (blockBelow.y < 90) {
+        teleport(world.spawnLocation.apply {
+            yaw = location.yaw
+            pitch = location.pitch
+        })
+        damage(7.0)
+    }
 }
 
 fun checkFallDamage(blockBelow: Block) = when (blockBelow.type) {
