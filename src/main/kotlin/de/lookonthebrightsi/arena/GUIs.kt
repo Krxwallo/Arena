@@ -1,11 +1,10 @@
 package de.lookonthebrightsi.arena
 
 import de.hglabor.utils.kutils.cancel
+import de.hglabor.utils.kutils.inv
 import de.hglabor.utils.kutils.namedItem
+import de.hglabor.utils.kutils.stack
 import net.axay.kspigot.chat.KColors
-import net.axay.kspigot.event.SingleListener
-import net.axay.kspigot.event.listen
-import net.axay.kspigot.event.unregister
 import net.axay.kspigot.extensions.broadcast
 import net.axay.kspigot.gui.GUIType
 import net.axay.kspigot.gui.Slots
@@ -16,9 +15,7 @@ import net.axay.kspigot.items.itemStack
 import net.axay.kspigot.items.meta
 import net.axay.kspigot.items.name
 import net.axay.kspigot.items.setLore
-import net.axay.kspigot.runnables.taskRun
 import net.axay.kspigot.runnables.taskRunLater
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryCloseEvent
@@ -129,21 +126,13 @@ fun Player.openTeamsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FIVE_BY_N
         )
 
         button(Slots.RowOneSlotOne, namedItem(Material.ENDER_PEARL, "${KColors.GREEN}Special Items")) {
-
+            openSpecialItemsGui()
         }
 
         button(Slots.RowOneSlotNine, namedItem(Material.BUNDLE, "${KColors.BROWN}Extras")) {
-            val inv = Bukkit.createInventory(null, 27, "${KColors.BROWN}Extras")
-            inv.addItem(*equip.extrasToItemStacks().toTypedArray())
-            openInventory(inv)
-            @Suppress("JoinDeclarationAndAssignment")
-            lateinit var listener: SingleListener<InventoryCloseEvent>
-            listener = listen {
-                if (it.player == this@openTeamsGui && it.inventory == inv) {
-                    listener.unregister()
-                    equip.setExtras(it.inventory.contents?.toList() ?: return@listen)
-                    taskRunLater(1L ) { openTeamsGui() }
-                }
+            inv(27, "${KColors.BROWN}Extras", equip.extrasToItemStacks()) {
+                equip.setExtras(inventory.contents?.toList() ?: return@inv)
+                taskRunLater(1L ) { openTeamsGui() }
             }
         }
 
@@ -151,8 +140,91 @@ fun Player.openTeamsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FIVE_BY_N
     }
 
     onClose {
-        // TODO no reequip when opening b
-        sendMessage("$PREFIX ${KColors.GREEN}Saved equipment")
-        combatPlayers { reEquip() }
+        if (it.bukkitEvent.reason == InventoryCloseEvent.Reason.PLAYER) {
+            sendMessage("$PREFIX ${KColors.GREEN}Saved equipment")
+            combatPlayers { reEquip() }
+        }
+    }
+})
+
+fun Player.openSpecialItemsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FOUR_BY_NINE) {
+    title = "${KColors.DARKGREEN}Special Items"
+
+    page(1) {
+        placeholder(Slots.All, namedItem(Material.LIME_STAINED_GLASS_PANE, ""))
+
+        lateinit var itemsCompound: GUIRectSpaceCompound<*, CooldownItem>
+        lateinit var onOffCompound: GUIRectSpaceCompound<*, CooldownItem>
+
+        fun updateCompounds() {
+            // TODO real equip
+            itemsCompound.setContent(equip.specialItems)
+            onOffCompound.setContent(equip.specialItems)
+        }
+
+        itemsCompound = createRectCompound(
+            Slots.RowThreeSlotTwo,
+            Slots.RowThreeSlotEight,
+            iconGenerator = {
+                it.item.stack().apply {
+                    meta {
+                        if (!it.enabled) name = "${KColors.RED}${KColors.STRIKETHROUGH}${it.item.name}" else name = "${KColors.GREEN}${it.item.name}"
+                        setLore {
+                            lorelist += "${KColors.LIME}Cooldown: ${it.cooldown}"
+                            if (it.cooldown < 180) lorelist += "${KColors.LIGHTGRAY}Left click to increase cooldown"
+                            if (it.cooldown <= 170) lorelist += "${KColors.LIGHTGRAY}Shift Left click to increase cooldown by 10"
+                            if (it.cooldown > 0) lorelist += "${KColors.LIGHTGRAY}Right click to decrease cooldown"
+                            if (it.cooldown >= 10) lorelist += "${KColors.LIGHTGRAY}Shift Right click to decrease cooldown by 10"
+                        }
+                    }
+                }
+            },
+            onClick = { clickEvent, element ->
+                clickEvent.bukkitEvent.cancel()
+                if (clickEvent.bukkitEvent.isRightClick) {
+                    if (clickEvent.bukkitEvent.isShiftClick && element.cooldown >= 10) element.cooldown-=10
+                    else if (!clickEvent.bukkitEvent.isShiftClick && element.cooldown > 0) element.cooldown--
+                }
+                else if (clickEvent.bukkitEvent.isLeftClick) {
+                    if (clickEvent.bukkitEvent.isShiftClick && element.cooldown <= 170) element.cooldown+= 10
+                    else if (!clickEvent.bukkitEvent.isShiftClick && element.cooldown < 180) element.cooldown++
+                }
+                updateCompounds()
+            }
+        )
+
+        onOffCompound = createRectCompound(
+            Slots.RowTwoSlotTwo,
+            Slots.RowTwoSlotEight,
+            iconGenerator = {
+                if (it.enabled) itemStack(Material.GREEN_WOOL) {
+                    meta {
+                        name = "${KColors.GREEN}Enabled"
+                        setLore {
+                            lorelist += "${KColors.LIGHTGRAY}Click to ${KColors.RED}disable"
+                        }
+                    }
+                }
+                else itemStack(Material.RED_WOOL) {
+                    meta {
+                        name = "${KColors.RED}Disabled"
+                        setLore {
+                            lorelist += "${KColors.LIGHTGRAY}Click to ${KColors.GREEN}enable"
+                        }
+                    }
+                }
+            },
+            onClick = { clickEvent, element ->
+                clickEvent.bukkitEvent.cancel()
+                element.enabled = !element.enabled
+                updateCompounds()
+            }
+        )
+
+        updateCompounds()
+
+        onClose {
+            taskRunLater(1L) { openTeamsGui() }
+        }
     }
 })

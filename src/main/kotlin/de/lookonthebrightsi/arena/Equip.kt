@@ -47,7 +47,7 @@ val levelMaterials = listOf(
  * ...
  */
 @Serializable
-class Equip(val armorItems: List<Item>, val weapons: List<Item>, var extras: Map<Material, Int>, val shield: Boolean = true) {
+class Equip(val armorItems: List<Item>, val weapons: List<Item>, val specialItems: List<CooldownItem>, var extras: Map<Material, Int>, val shield: Boolean = true) {
     fun extrasToItemStacks(): List<ItemStack> {
         val stacks = arrayListOf<ItemStack>()
         extras.forEach { (type, amount) ->
@@ -73,6 +73,10 @@ class Equip(val armorItems: List<Item>, val weapons: List<Item>, var extras: Map
             else player.give(it.getItemStack())
         }
 
+        specialItems.forEach {
+            if (it.enabled) player.give(it.item.stack())
+        }
+
         player.give(*extrasToItemStacks().toTypedArray())
 
         if (shield) player.inventory.setItemInOffHand(Material.SHIELD.stack())
@@ -85,10 +89,15 @@ val DEFAULT_EQUIP = Equip(
     listOf(Boots(level = 2), Leggings(level = 2), Chestplate(level = 2), Helmet(level = 2)),
     // Weapons
     listOf(Sword(level = 2), Axe(level = 2), Bow()),
+    // Special Items
+    listOf(CooldownItem(Material.ENDER_PEARL, 15)),
     // Extras
     mapOf(Material.ENDER_PEARL to 1, Material.ARROW to 1, Material.COOKED_BEEF to 64))
 
 var equip = DEFAULT_EQUIP
+
+@Serializable
+data class CooldownItem(val item: Material, var cooldown: Int, var enabled: Boolean = true)
 
 /** Represents an equip item, like a sword or an axe */
 @Serializable

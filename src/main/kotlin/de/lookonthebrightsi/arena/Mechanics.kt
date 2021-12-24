@@ -1,7 +1,6 @@
 package de.lookonthebrightsi.arena
 
 import de.hglabor.utils.kutils.playSound
-import net.axay.kspigot.extensions.geometry.vecX
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.block.Block

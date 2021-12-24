@@ -44,15 +44,19 @@ fun events() {
             it.cancel()
             it.player.actionBar("${KColors.RED}You can't interact here")
         }
-        else if (it.isRightClick && it.item?.type == Material.ENDER_PEARL) {
-            taskRunLater(20*15) {
-                it.player.inventory.remove(Material.ENDER_PEARL) // TODO correct fix
-                it.player.give(Material.ENDER_PEARL.stack())
+        if (it.isRightClick) equip.specialItems.forEach { item ->
+            if (item.item == it.item?.type) {
+                taskRunLater((20*item.cooldown).toLong()) {
+                    it.player.inventory.remove(item.item) // TODO correct fix
+                    it.player.give(item.item.stack())
+                }
             }
         }
     }
-    combatListen<PlayerItemConsumeEvent> {
-        if (it.item.type == Material.ENDER_PEARL) it.cancel()
+    combatListen<PlayerItemConsumeEvent> { event ->
+        equip.specialItems.forEach {
+            if (it.enabled && it.item == event.item.type) event.cancel()
+        }
     }
     combatListen<PlayerItemDamageEvent> {
         it.cancel()

@@ -1,7 +1,7 @@
 group = "de.lookonthebrightsi"
 version = "0.0.1"
 val kspigot = "1.18.0"
-val kutils = "0.0.5"
+val kutils = "0.0.6"
 val kotlinxSerializationJson = "1.3.1"
 
 plugins {
@@ -13,7 +13,7 @@ plugins {
 
 bukkit {
     main = "$group.arena.InternalMainClass"
-    website = "https://github.com/HGLabor/training-v2"
+    website = "https://github.com/Krxwallo/Arena"
     version = project.version.toString()
     apiVersion = "1.18"
     libraries = listOf(
