@@ -5,7 +5,6 @@ import de.hglabor.utils.kutils.inv
 import de.hglabor.utils.kutils.namedItem
 import de.hglabor.utils.kutils.stack
 import net.axay.kspigot.chat.KColors
-import net.axay.kspigot.extensions.broadcast
 import net.axay.kspigot.gui.GUIType
 import net.axay.kspigot.gui.Slots
 import net.axay.kspigot.gui.elements.GUIRectSpaceCompound
@@ -168,7 +167,7 @@ fun Player.openSpecialItemsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FO
             iconGenerator = {
                 it.item.stack().apply {
                     meta {
-                        if (!it.enabled) name = "${KColors.RED}${KColors.STRIKETHROUGH}${it.item.name}" else name = "${KColors.GREEN}${it.item.name}"
+                        name = if (!it.enabled) "${KColors.RED}${KColors.STRIKETHROUGH}${it.item.name}" else "${KColors.GREEN}${it.item.name}"
                         setLore {
                             lorelist += "${KColors.LIME}Cooldown: ${it.cooldown}"
                             if (it.cooldown < 180) lorelist += "${KColors.LIGHTGRAY}Left click to increase cooldown"

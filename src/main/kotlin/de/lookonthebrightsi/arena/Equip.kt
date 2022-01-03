@@ -3,7 +3,6 @@ package de.lookonthebrightsi.arena
 import de.hglabor.utils.kutils.stack
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import net.axay.kspigot.chat.KColors
 import net.axay.kspigot.extensions.bukkit.give
 import net.axay.kspigot.items.addLore
@@ -74,7 +73,9 @@ class Equip(val armorItems: List<Item>, val weapons: List<Item>, val specialItem
         }
 
         specialItems.forEach {
-            if (it.enabled) player.give(it.item.stack())
+            if (it.enabled) player.give(it.item.stack().apply {
+                if (type == Material.FIRE_CHARGE) meta { name = "${KColors.ORANGERED}${KColors.BOLD}Fireball" }
+            })
         }
 
         player.give(*extrasToItemStacks().toTypedArray())
@@ -90,9 +91,12 @@ val DEFAULT_EQUIP = Equip(
     // Weapons
     listOf(Sword(level = 2), Axe(level = 2), Bow()),
     // Special Items
-    listOf(CooldownItem(Material.ENDER_PEARL, 15)),
+    listOf(
+        CooldownItem(Material.ENDER_PEARL, 15),
+        CooldownItem(Material.FIRE_CHARGE, 15)
+    ),
     // Extras
-    mapOf(Material.ENDER_PEARL to 1, Material.ARROW to 1, Material.COOKED_BEEF to 64))
+    mapOf(Material.ARROW to 1, Material.COOKED_BEEF to 64))
 
 var equip = DEFAULT_EQUIP
 

@@ -1,7 +1,6 @@
 package de.lookonthebrightsi.arena
 
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -29,6 +28,7 @@ class InternalMainClass : KSpigot() {
         INSTANCE = this
     }
 
+    @Suppress("EXPERIMENTAL_API_USAGE")
     private val json = Json {
         prettyPrint = true
         encodeDefaults = true

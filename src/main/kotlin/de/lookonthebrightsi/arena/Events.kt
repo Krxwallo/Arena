@@ -10,9 +10,7 @@ import net.axay.kspigot.event.listen
 import net.axay.kspigot.extensions.broadcast
 import net.axay.kspigot.extensions.bukkit.actionBar
 import net.axay.kspigot.extensions.bukkit.give
-import net.axay.kspigot.extensions.geometry.vec
 import net.axay.kspigot.runnables.taskRunLater
-import org.bukkit.Material
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.EnderPearl
 import org.bukkit.entity.Player
@@ -21,9 +19,11 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.LeavesDecayEvent
-import org.bukkit.event.entity.*
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityPlaceEvent
+import org.bukkit.event.entity.EntityShootBowEvent
 import org.bukkit.event.player.*
-import java.util.*
 
 fun events() {
     // Cancel stuff when player is in combat
@@ -44,8 +44,9 @@ fun events() {
             it.cancel()
             it.player.actionBar("${KColors.RED}You can't interact here")
         }
-        if (it.isRightClick) equip.specialItems.forEach { item ->
+        else if (it.isRightClick) equip.specialItems.forEach { item ->
             if (item.item == it.item?.type) {
+                it.actionForItem(item.item)
                 taskRunLater((20*item.cooldown).toLong()) {
                     it.player.inventory.remove(item.item) // TODO correct fix
                     it.player.give(item.item.stack())
@@ -114,6 +115,10 @@ fun events() {
     // NED
     listen<EntityDamageByEntityEvent> {
         if (it.entity is Player && it.damager is EnderPearl) it.cancel()
+    }
+
+    listen<PlayerRespawnEvent> {
+        it.respawnLocation = it.player.world.spawnLocation
     }
 }
 
