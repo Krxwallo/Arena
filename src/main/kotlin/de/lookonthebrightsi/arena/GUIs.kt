@@ -41,8 +41,7 @@ fun Player.openMainGui() = openGUI(kSpigotGUI(GUIType.ONE_BY_FIVE) {
             openTeamsGui()
         }
         button(Slots.RowOneSlotFour, namedItem(Material.COMPARATOR, "${KColors.GRAY}Settings")) {
-            //openSettingsGui() // TODO
-            sendMessage("N/I")
+            openSettingsGui()
         }
     }
 })
@@ -82,7 +81,7 @@ fun Player.openTeamsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FIVE_BY_N
             },
 
             onClick = { clickEvent, item ->
-                clickEvent.bukkitEvent.cancel()
+                clickEvent.cancel()
                 if (clickEvent.bukkitEvent.currentItem?.type == Material.BARRIER) return@createRectCompound
                 if (clickEvent.bukkitEvent.isLeftClick && item.levelIncreasable()) item.level++
                 else if (clickEvent.bukkitEvent.isRightClick && item.levelDecreasable()) item.level--
@@ -96,7 +95,7 @@ fun Player.openTeamsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FIVE_BY_N
             iconGenerator = { it.getItemStack() },
 
             onClick = { clickEvent, _ ->
-                clickEvent.bukkitEvent.cancel() // TODO Enable/Disable
+                clickEvent.cancel() // TODO Enable/Disable
             }
         )
 
@@ -117,7 +116,7 @@ fun Player.openTeamsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FIVE_BY_N
             },
 
             onClick = { clickEvent, item ->
-                clickEvent.bukkitEvent.cancel()
+                clickEvent.cancel()
                 if (clickEvent.bukkitEvent.isLeftClick && item.modifierIncreasable()) item.modifier++
                 else if (clickEvent.bukkitEvent.isRightClick && item.modifierDecreasable()) item.modifier--
                 updateCompounds()
@@ -179,7 +178,7 @@ fun Player.openSpecialItemsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FO
                 }
             },
             onClick = { clickEvent, element ->
-                clickEvent.bukkitEvent.cancel()
+                clickEvent.cancel()
                 if (clickEvent.bukkitEvent.isRightClick) {
                     if (clickEvent.bukkitEvent.isShiftClick && element.cooldown >= 10) element.cooldown-=10
                     else if (!clickEvent.bukkitEvent.isShiftClick && element.cooldown > 0) element.cooldown--
@@ -214,7 +213,7 @@ fun Player.openSpecialItemsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FO
                 }
             },
             onClick = { clickEvent, element ->
-                clickEvent.bukkitEvent.cancel()
+                clickEvent.cancel()
                 element.enabled = !element.enabled
                 updateCompounds()
             }
@@ -224,6 +223,59 @@ fun Player.openSpecialItemsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.FO
 
         onClose {
             taskRunLater(1L) { openTeamsGui() }
+        }
+    }
+})
+
+
+private val UNKNOWN_TYPE = namedItem(Material.BARRIER, "${KColors.RED}Error (unknown setting type)")
+
+fun Player.openSettingsGui(): InventoryView? = openGUI(kSpigotGUI(GUIType.THREE_BY_NINE) {
+    title = "${KColors.WHITE}Settings"
+
+    page(1) {
+        placeholder(Slots.All, namedItem(Material.WHITE_STAINED_GLASS_PANE, ""))
+
+        lateinit var settingsCompound: GUIRectSpaceCompound<*, Setting>
+
+        fun updateCompounds() {
+            settingsCompound.setContent(settings.asList())
+        }
+
+        settingsCompound = createRectCompound(
+            Slots.RowTwoSlotTwo,
+            Slots.RowTwoSlotEight,
+            iconGenerator = {
+                it.icon.stack().apply {
+                    meta {
+                        name = "${KColors.GRAY}${it.name}: ${KColors.WHITE}${it.value}"
+                        setLore {
+                            when (it.value) {
+                                is Boolean -> {
+                                    lorelist += "${KColors.LIGHTGRAY}Click to " + if (it.value as Boolean) "${KColors.RED}disable" else "${KColors.GREEN}enable"
+                                }
+                                else -> UNKNOWN_TYPE
+                            }
+                        }
+                    }
+                }
+            },
+            onClick = { clickEvent, element ->
+                clickEvent.cancel()
+                if (clickEvent.bukkitEvent.currentItem == UNKNOWN_TYPE) return@createRectCompound
+
+                when (element.value) {
+                    is Boolean -> element.value = !(element.value as Boolean)
+                }
+
+                updateCompounds()
+            }
+        )
+
+        updateCompounds()
+
+        onClose {
+            sendMessage("$PREFIX ${KColors.GREEN}Saved settings")
         }
     }
 })

@@ -1,6 +1,5 @@
 package de.lookonthebrightsi.arena
 
-import net.axay.kspigot.chat.KColors
 import net.axay.kspigot.commands.command
 import net.axay.kspigot.commands.requiresPermission
 import net.axay.kspigot.commands.runs
@@ -21,6 +20,11 @@ fun commands() {
 
     command("settings") {
         requiresPermission("arena.settings")
-        runs { player.sendMessage("$PREFIX ${KColors.RED}Use ${KColors.WHITE}/arena") }
+        runs { player.openSettingsGui() }
+    }
+
+    command("teams") {
+        requiresPermission("arena.teams")
+        runs { player.openTeamsGui() }
     }
 }

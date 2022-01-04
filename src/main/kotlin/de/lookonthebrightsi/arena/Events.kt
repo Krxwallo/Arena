@@ -21,6 +21,7 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.block.LeavesDecayEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause.*
 import org.bukkit.event.entity.EntityPlaceEvent
 import org.bukkit.event.entity.EntityShootBowEvent
 import org.bukkit.event.player.*
@@ -107,9 +108,19 @@ fun events() {
     }
 
     listen<EntityDamageEvent> {
-        if (it.cause == EntityDamageEvent.DamageCause.FALL
-            && it.entity is Player && (it.entity as Player).combat
-            && checkFallDamage(it.entity.location.block.getRelative(BlockFace.DOWN))) it.cancel()
+
+        if (it.entity !is Player || !(it.entity as Player).combat) return@listen
+        when (it.cause) {
+            FALL -> {
+                if (!settings.fallDamage.boolean()) it.cancel()
+                else if (checkFallDamage(it.entity.location.block.getRelative(BlockFace.DOWN))) it.cancel()
+            }
+            BLOCK_EXPLOSION, ENTITY_EXPLOSION -> {
+                if (!settings.explosionDamage.boolean()) it.damage = 0.0
+                else it.damage = it.damage / 2
+            }
+            else -> {}
+        }
     }
 
     // NED

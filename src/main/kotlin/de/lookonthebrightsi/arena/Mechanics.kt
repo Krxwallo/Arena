@@ -44,6 +44,7 @@ fun PlayerInteractEvent.actionForItem(item: Material) = when (item) {
         val direction = player.eyeLocation.direction
         val fireball = player.world.spawnEntity(player.eyeLocation.apply { add(direction.multiply(1)) }, EntityType.FIREBALL) as Fireball
         fireball.shooter = player
+        fireball.yield = 3F
         fireball.direction = direction.multiply(10)
     }
     else -> {}

@@ -1,7 +1,7 @@
 group = "de.lookonthebrightsi"
 version = "0.0.1"
 val kspigot = "1.18.0"
-val kutils = "0.0.6"
+val kutils = "0.0.12"
 val kotlinxSerializationJson = "1.3.1"
 
 plugins {
